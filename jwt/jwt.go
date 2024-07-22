@@ -11,7 +11,7 @@ type Hmac interface {
 	Name() string
 }
 
-var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
 
 func Generate(headerInfo []byte, payloadInfo []byte, hmacAlgorithm Hmac) (string, error) {
 	header, err := Base64URLEncoder.EncodeBase64Url(headerInfo)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/luk3skyw4lker/go-jwt/encoder"
@@ -17,11 +18,13 @@ func generate() string {
 	// You should store your secret into a safe environment variable and it should be a strong string
 	algorithm := hmac.NewHS256("secret")
 
-	jsonData, _ := json.Marshal(map[string]any{
-		"sub":  "@luk3skyw4lker",
-		"name": "Lucas",
-		"iat":  1516239022,
-	})
+	jsonData, _ := json.Marshal(
+		map[string]any{
+			"sub":  "@luk3skyw4lker",
+			"name": "Lucas",
+			"iat":  1516239022,
+		},
+	)
 	headerInfo, _ := json.Marshal(
 		map[string]string{
 			"alg": algorithm.Name(),
@@ -36,6 +39,8 @@ func generate() string {
 
 func degenerate() string {
 	token := generate()
+
+	log.Printf("token: %s", token)
 
 	parts := strings.Split(token, ".")
 

@@ -6,10 +6,8 @@ import (
 	"strings"
 )
 
+// This is the URL safe version of base64, which is the one commonly used for JWT generation
 var Base64URLAlphabet string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-
-var Base64URLEncoder *Encoder = must(NewEncoder(Base64URLAlphabet))
-
 var padChar rune = '='
 
 type Encoder struct {
@@ -50,6 +48,9 @@ func NewEncoder(alphabet string) (*Encoder, error) {
 
 		enc.decodeMap[alphabet[i]] = uint8(i)
 	}
+
+	// The padding character is ignored anyway, so this is just to prevent a error
+	enc.decodeMap[int([]rune("=")[0])] = 0
 
 	return &enc, nil
 }
@@ -125,19 +126,13 @@ func (e *Encoder) DecodeBase64Url(data string) (string, error) {
 		return "", errors.New("padding is wrong for base64url pattern")
 	}
 
-	var missingOctets int
-	if strings.HasSuffix(data, "==") {
-		missingOctets = 2
-	} else if strings.HasSuffix(data, "=") {
-		missingOctets = 2
-	} else {
-		missingOctets = 0
-	}
+	// if two padding characters are found, there are 2 missingOctets
+	// if only one is found, there is only 1 missing octet
+	var missingOctets = strings.Count(data, "=")
 
 	var i = 0
 	var j = 0
-	var result = make([]byte, (len(data)*3)/4)
-
+	var result = make([]byte, len(data)*3/4)
 	for i = 0; i < len(data); {
 		firstCode, err := getBase64Code(int([]rune(data)[i]), e.decodeMap)
 		secondCode, err := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
