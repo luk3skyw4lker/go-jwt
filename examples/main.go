@@ -25,16 +25,10 @@ func generate() string {
 			"iat":  1516239022,
 		},
 	)
-	headerInfo, _ := json.Marshal(
-		map[string]string{
-			"alg": algorithm.Name(),
-			"typ": "JWT",
-		},
-	)
 
 	generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
 
-	jwtString, _ := generator.Generate(headerInfo, jsonData)
+	jwtString, _ := generator.Generate(jsonData)
 
 	return jwtString
 }

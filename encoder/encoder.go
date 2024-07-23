@@ -4,6 +4,8 @@ package encoder
 import (
 	"errors"
 	"strings"
+
+	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
 // This is the URL safe version of base64, which is the one commonly used for JWT generation
@@ -16,16 +18,8 @@ type Encoder struct {
 	decodeMap     [256]byte
 }
 
-func must[T any](data T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-
-	return data
-}
-
 func MustNewEncoder(alphabet string) *Encoder {
-	return must(NewEncoder(alphabet))
+	return utils.Must((NewEncoder(alphabet)))
 }
 
 func NewEncoder(alphabet string) (*Encoder, error) {

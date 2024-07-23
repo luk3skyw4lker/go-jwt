@@ -1,10 +1,12 @@
 package jwt
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/luk3skyw4lker/go-jwt/encoder"
+	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
 var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
@@ -19,8 +21,9 @@ type Options struct {
 }
 
 type JWTGenerator struct {
-	hmac    Hmac
-	options Options
+	hmac          Hmac
+	options       Options
+	defaultHeader []byte
 }
 
 func NewGenerator(algorithm Hmac, options ...Options) *JWTGenerator {
@@ -32,12 +35,18 @@ func NewGenerator(algorithm Hmac, options ...Options) *JWTGenerator {
 	generator := JWTGenerator{
 		hmac:    algorithm,
 		options: opt,
+		defaultHeader: utils.Must(
+			json.Marshal(map[string]string{
+				"alg": algorithm.Name(),
+				"typ": "JWT",
+			}),
+		),
 	}
 
 	return &generator
 }
 
-func (g *JWTGenerator) Generate(headerInfo []byte, payloadInfo []byte) (string, error) {
+func (g *JWTGenerator) GenerateWithCustomHeader(headerInfo []byte, payloadInfo []byte) (string, error) {
 	header, err := Base64URLEncoder.EncodeBase64Url(headerInfo, g.options.ShouldPad)
 	if err != nil {
 		return "", err
@@ -59,6 +68,10 @@ func (g *JWTGenerator) Generate(headerInfo []byte, payloadInfo []byte) (string, 
 	}
 
 	return fmt.Sprintf("%s.%s.%s", header, payload, signature), nil
+}
+
+func (g *JWTGenerator) Generate(payload []byte) (string, error) {
+	return g.GenerateWithCustomHeader(g.defaultHeader, payload)
 }
 
 func (g *JWTGenerator) Verify(jwt string) (bool, error) {
