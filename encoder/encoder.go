@@ -67,12 +67,12 @@ func (e *Encoder) addRemainingSmallBlock(data, result []byte, remaining, j, i in
 	return result, val
 }
 
-func (e *Encoder) EncodeBase64Url(data []byte) (string, error) {
+func (e *Encoder) EncodeBase64Url(data []byte, shouldPad bool) (string, error) {
 	if len(data) == 0 {
 		return "", errors.New("no data provided to encode")
 	}
 
-	result := make([]byte, (len(data)+2)/3*4)
+	result := make([]byte, encodedLen(len(data), shouldPad))
 	i, j := 0, 0
 	// This is to reduce the number to the closest multiple of 3 before it
 	// like if the length of data is 32 this will result in 30
@@ -96,43 +96,40 @@ func (e *Encoder) EncodeBase64Url(data []byte) (string, error) {
 		result, val := e.addRemainingSmallBlock(data, result, remaining, j, i)
 
 		result[i+2] = e.bytesAlphabet[val>>6&0x3F]
-		result[i+3] = byte(padChar)
+		if shouldPad {
+			result[i+3] = byte(padChar)
+		}
 	case 1:
 		result, _ = e.addRemainingSmallBlock(data, result, remaining, j, i)
 
-		result[i+2] = byte(padChar)
-		result[i+3] = byte(padChar)
+		if shouldPad {
+			result[i+2] = byte(padChar)
+			result[i+3] = byte(padChar)
+		}
 	}
 
 	return string(result), nil
 }
 
-func (e *Encoder) EncodeBase64UrlString(data string) (string, error) {
+func (e *Encoder) EncodeBase64UrlString(data string, shouldPad bool) (string, error) {
 	if data == "" {
 		return "", errors.New("no data provided to encode")
 	}
 
-	return e.EncodeBase64Url([]byte(data))
+	return e.EncodeBase64Url([]byte(data), shouldPad)
 }
 
-func (e *Encoder) DecodeBase64Url(data string) (string, error) {
-	if len(data)%4 != 0 {
-		return "", errors.New("string is not at the right length for base64url")
-	}
-
-	padIndex := strings.Index(data, "=")
-
-	if padIndex != -1 && padIndex < len(data)-2 {
+func (e *Encoder) DecodeBase64Url(data string, padded bool) (string, error) {
+	if padIndex := strings.Index(data, "="); padIndex != -1 && padIndex < len(data)-2 {
 		return "", errors.New("padding is wrong for base64url pattern")
 	}
 
-	// if two padding characters are found, there are 2 missingOctets
-	// if only one is found, there is only 1 missing octet
-	var missingOctets = strings.Count(data, "=")
+	// This adds the pads back on
+	if m := len(data) % 4; m != 0 && !padded {
+		data += strings.Repeat("=", 4-m)
+	}
 
-	var i = 0
-	var j = 0
-	var result = make([]byte, len(data)*3/4)
+	missingOctets, i, j, result := strings.Count(data, "="), 0, 0, make([]byte, decodedLen(len(data)))
 	for i = 0; i < len(data); {
 		firstCode, err := getBase64Code(int([]rune(data)[i]), e.decodeMap)
 		secondCode, err := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)

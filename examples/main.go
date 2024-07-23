@@ -13,11 +13,11 @@ import (
 )
 
 var Base64 *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
+var shouldPad = false
 
 func generate() string {
 	// You should store your secret into a safe environment variable and it should be a strong string
 	algorithm := hmac.NewHS256("secret")
-
 	jsonData, _ := json.Marshal(
 		map[string]any{
 			"sub":  "@luk3skyw4lker",
@@ -32,7 +32,9 @@ func generate() string {
 		},
 	)
 
-	jwtString, _ := jwt.Generate(headerInfo, jsonData, algorithm)
+	generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
+
+	jwtString, _ := generator.Generate(headerInfo, jsonData)
 
 	return jwtString
 }
@@ -44,17 +46,33 @@ func degenerate() string {
 
 	parts := strings.Split(token, ".")
 
-	headerDecoded, err := Base64.DecodeBase64Url(parts[0])
+	headerDecoded, err := Base64.DecodeBase64Url(parts[0], shouldPad)
 	if err != nil {
 		panic(err)
 	}
 
-	payloadDecoded, err := Base64.DecodeBase64Url(parts[1])
+	payloadDecoded, err := Base64.DecodeBase64Url(parts[1], shouldPad)
 	if err != nil {
 		panic(err)
 	}
 
 	return strings.Join([]string{headerDecoded, payloadDecoded}, "\n")
+}
+
+func verify(token string) bool {
+	if token == "" {
+		return false
+	}
+
+	algorithm := hmac.NewHS256("secret")
+	generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
+
+	verified, err := generator.Verify(token)
+	if err != nil {
+		panic(err)
+	}
+
+	return verified
 }
 
 func main() {
@@ -67,6 +85,8 @@ func main() {
 		fmt.Println(generate())
 	case "degenerate":
 		fmt.Println(degenerate())
+	case "verify":
+		fmt.Println(verify(flag.Arg(1)))
 	default:
 		fmt.Printf("invalid arg: %s", arg)
 	}
