@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 )
 
@@ -37,20 +36,26 @@ func (HS256) Generate(header []byte, payload []byte) ([]byte, error) {
 	return mac.Sum(nil), nil
 }
 
-type RS256 struct{}
+type RS256 struct {
+	key string
+}
+
+func NewRS256(key string) *RS256 {
+	return &RS256{
+		key: key,
+	}
+}
 
 func (RS256) Name() string {
 	return "RS256"
 }
 
-func (RS256) Generate(header []byte, payload []byte) ([]byte, error) {
-	key := os.Getenv("RSA_PUBLIC_KEY")
-
-	if key == "" {
+func (r *RS256) Generate(header []byte, payload []byte) ([]byte, error) {
+	if r.key == "" {
 		return nil, errors.New("cannot generate RSA256 hash with no key")
 	}
 
-	block, _ := pem.Decode([]byte(key))
+	block, _ := pem.Decode([]byte(r.key))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the public key")
 	}
