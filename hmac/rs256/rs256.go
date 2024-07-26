@@ -1,7 +1,6 @@
-package hmac
+package rs256
 
 import (
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -12,35 +11,11 @@ import (
 	"slices"
 )
 
-type HS256 struct {
-	key []byte
-}
-
-func NewHS256(key string) HS256 {
-	return HS256{
-		key: []byte(key),
-	}
-}
-
-func (HS256) Name() string {
-	return "HS256"
-}
-
-// This function generates a
-func (HS256) Generate(header []byte, payload []byte) ([]byte, error) {
-	mac := hmac.New(sha256.New, []byte("secret"))
-
-	mac.Write(header)
-	mac.Write(payload)
-
-	return mac.Sum(nil), nil
-}
-
 type RS256 struct {
 	key string
 }
 
-func NewRS256(key string) *RS256 {
+func New(key string) *RS256 {
 	return &RS256{
 		key: key,
 	}

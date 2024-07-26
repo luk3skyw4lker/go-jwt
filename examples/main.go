@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/luk3skyw4lker/go-jwt/encoder"
-	"github.com/luk3skyw4lker/go-jwt/hmac"
+	"github.com/luk3skyw4lker/go-jwt/hmac/hs256"
 	"github.com/luk3skyw4lker/go-jwt/jwt"
 )
 
@@ -17,7 +17,6 @@ var shouldPad = false
 
 func generate() string {
 	// You should store your secret into a safe environment variable and it should be a strong string
-	algorithm := hmac.NewHS256("secret")
 	jsonData, _ := json.Marshal(
 		map[string]any{
 			"sub":  "@luk3skyw4lker",
@@ -26,7 +25,7 @@ func generate() string {
 		},
 	)
 
-	generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
+	generator := jwt.NewGenerator(hs256.New("secret"), jwt.Options{ShouldPad: shouldPad})
 
 	jwtString, _ := generator.Generate(jsonData)
 
@@ -58,8 +57,7 @@ func verify(token string) bool {
 		return false
 	}
 
-	algorithm := hmac.NewHS256("secret")
-	generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
+	generator := jwt.NewGenerator(hs256.New("secret"), jwt.Options{ShouldPad: shouldPad})
 
 	verified, err := generator.Verify(token)
 	if err != nil {
