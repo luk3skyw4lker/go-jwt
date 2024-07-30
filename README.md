@@ -12,6 +12,7 @@ go get github.com/luk3skyw4lker/go-jwt
 type Hmac interface {
 	Generate([]byte, []byte) ([]byte, error)
 	Name() string
+  Verify([]byte, []byte, []byte) (bool, error)
 }
 
 type Options struct {
@@ -33,26 +34,36 @@ Here is a example code for generation and verification of your JWT:
 
 ```go
 import (
-  "log"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"strings"
 
-  "github.com/luk3skyw4lker/go-jwt/hmac"
-  "github.com/luk3skyw4lker/go-jwt/jwt"
+	"github.com/luk3skyw4lker/go-jwt/encoder"
+	"github.com/luk3skyw4lker/go-jwt/hmac/hs256"
+	"github.com/luk3skyw4lker/go-jwt/jwt"
+	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
+var Base64 *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
+
+var hmacAlgorithm jwt.Hmac = utils.Must(hs256.New(os.Getenv("JWT_KEY")))
 var shouldPad = false
 
 func main() {
   // the name of the key is your choice
-  algorithm := hmac.NewHS256(os.Getenv("JWT_SECRET_KEY"))
-  generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
+  generator := jwt.NewGenerator(hmacAlgorithm, jwt.Options{ShouldPad: shouldPad})
 
-  jsonData, _ := json.Marshal(
-		map[string]any{
-			"sub":  "@luk3skyw4lker",
-			"name": "Lucas",
-			"iat":  1516239022,
-		},
-	)
+  payload := utils.Must(
+    json.Marshal(
+	  	map[string]any{
+	  		"sub":  "@luk3skyw4lker",
+	  		"name": "Lucas",
+	  		"iat":  1516239022,
+	  	},
+	  ),
+  )
 
   jwt, err := generator.Generate(payload)
   if err != nil {
@@ -70,7 +81,7 @@ func main() {
 }
 ```
 
-You can generate padded data for your JWTs using the `shouldPad` option set to true, although it's not recommended and it's not in accordance with the JWT spec, you can do it in this lib.
+You can generate padded data for your JWTs using the `shouldPad` option set to true, although it's not recommended and it's not in accordance with the JWT spec, you can do it here, the default option for this is false.
 
 ## Custom Headers
 
@@ -80,7 +91,7 @@ The library mainly uses a defaultHeader for all generated JWTs, but if you wan t
 import (
   "log"
 
-  "github.com/luk3skyw4lker/go-jwt/hmac"
+  "github.com/luk3skyw4lker/go-jwt/hmac/hs256"
   "github.com/luk3skyw4lker/go-jwt/jwt"
 )
 
@@ -88,24 +99,28 @@ var shouldPad = false
 
 func main() {
   // the name of the key is your choice
-  algorithm := hmac.NewHS256(os.Getenv("JWT_SECRET_KEY"))
+  algorithm := hs256.New(os.Getenv("JWT_SECRET_KEY"))
   generator := jwt.NewGenerator(algorithm, jwt.Options{ShouldPad: shouldPad})
 
-  headerInfo, _ := json.Marshal(
-    map[string]any{
-			"type":       "JWT",
-			"custominfo": "info",
-      "algorithm":  algorithm.Name(),
-			"iat":        1516239022,
-		},
+  headerInfo := utils.Must(
+    json.Marshal(
+      map[string]any{
+			  "type":       "JWT",
+			  "custominfo": "info",
+        "algorithm":  algorithm.Name(),
+			  "iat":        1516239022,
+		  },
+    ),
   )
-  jsonData, _ := json.Marshal(
-		map[string]any{
-			"sub":  "@luk3skyw4lker",
-			"name": "Lucas",
-			"iat":  1516239022,
-		},
-	)
+  payload := utils.Must(
+    json.Marshal(
+	  	map[string]any{
+	  		"sub":  "@luk3skyw4lker",
+	  		"name": "Lucas",
+	  		"iat":  1516239022,
+	  	},
+	  ),
+  )
 
   jwt, err := generator.GenerateWithCustomHeader(headerInfo, payload)
 
@@ -126,15 +141,17 @@ func main() {
 
 # HMACs
 
-The library offers two HMAC generation algorithms out of the box: `HS256` and `RS256`, you can import them from `github.com/luk3skyw4lker/go-jwt/hmac` and instantiate each one of them with the methods: `NewHS256` and `NewRS256`. Both of those methods accepts a key which will be used in your JWT generation.
+The library offers two HMAC generation algorithms out of the box: `HS256` and `RS256`, you can import them from `github.com/luk3skyw4lker/go-jwt/hmac/hs256` or `github.com/luk3skyw4lker/go-jwt/hmac/rs256` and instantiate each one of them with the methods: `New` method. Both of those methods accepts a key which will be used in your JWT generation.
 
 You can also implement your own HMAC generation algorithm following the `Hmac` interface spec:
 
 ```go
 type Hmac interface {
-	Generate([]byte, []byte) ([]byte, error)
+	Generate(headerInfo []byte, payload[]byte) ([]byte, error)
 	Name() string
+  Verify(headerInfo []byte, payload []byte, base64DecodedSignature []byte) (bool, error)
 }
+
 ```
 
 To ask for a different HMAC generation method to be implemented natively by the library, please open an issue specificating a feature request.
