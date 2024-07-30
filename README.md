@@ -10,8 +10,8 @@ go get github.com/luk3skyw4lker/go-jwt
 ## API
 ```go
 type Hmac interface {
-	Generate([]byte, []byte) ([]byte, error)
-	Name() string
+  Generate([]byte, []byte) ([]byte, error)
+  Name() string
   Verify([]byte, []byte, []byte) (bool, error)
 }
 
@@ -57,12 +57,12 @@ func main() {
 
   payload := utils.Must(
     json.Marshal(
-	  	map[string]any{
-	  		"sub":  "@luk3skyw4lker",
-	  		"name": "Lucas",
-	  		"iat":  1516239022,
-	  	},
-	  ),
+      map[string]any{
+        "sub":  "@luk3skyw4lker",
+        "name": "Lucas",
+        "iat":  1516239022,
+      },
+    ),
   )
 
   jwt, err := generator.Generate(payload)
@@ -105,21 +105,21 @@ func main() {
   headerInfo := utils.Must(
     json.Marshal(
       map[string]any{
-			  "type":       "JWT",
-			  "custominfo": "info",
+        "type":       "JWT",
+        "custominfo": "info",
         "algorithm":  algorithm.Name(),
-			  "iat":        1516239022,
-		  },
+        "iat":        1516239022,
+      },
     ),
   )
   payload := utils.Must(
     json.Marshal(
-	  	map[string]any{
-	  		"sub":  "@luk3skyw4lker",
-	  		"name": "Lucas",
-	  		"iat":  1516239022,
-	  	},
-	  ),
+      map[string]any{
+        "sub":  "@luk3skyw4lker",
+        "name": "Lucas",
+        "iat":  1516239022,
+      },
+    ),
   )
 
   jwt, err := generator.GenerateWithCustomHeader(headerInfo, payload)
@@ -147,11 +147,10 @@ You can also implement your own HMAC generation algorithm following the `Hmac` i
 
 ```go
 type Hmac interface {
-	Generate(headerInfo []byte, payload[]byte) ([]byte, error)
-	Name() string
-  Verify(headerInfo []byte, payload []byte, base64DecodedSignature []byte) (bool, error)
+  Generate([]byte, []byte) ([]byte, error)
+  Name() string
+  Verify([]byte, []byte, []byte) (bool, error)
 }
-
 ```
 
 To ask for a different HMAC generation method to be implemented natively by the library, please open an issue specificating a feature request.
