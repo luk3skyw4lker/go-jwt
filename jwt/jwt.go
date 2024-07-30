@@ -3,7 +3,6 @@ package jwt
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/luk3skyw4lker/go-jwt/encoder"
 	"github.com/luk3skyw4lker/go-jwt/utils"
@@ -14,6 +13,7 @@ var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URL
 type Hmac interface {
 	Generate([]byte, []byte) ([]byte, error)
 	Name() string
+	Verify([]byte, []byte, []byte) (bool, error)
 }
 
 type Options struct {
@@ -75,17 +75,11 @@ func (g *JWTGenerator) Generate(payload []byte) (string, error) {
 }
 
 func (g *JWTGenerator) Verify(jwt string) (bool, error) {
-	parts := strings.Split(jwt, ".")
-
-	hmac, err := g.hmac.Generate([]byte(parts[0]), []byte(parts[1]))
+	header, payload, signature := utils.SplitToken(jwt)
+	decodedSignature, err := Base64URLEncoder.DecodeBase64Url(signature, g.options.ShouldPad)
 	if err != nil {
 		return false, err
 	}
 
-	encodedHmac, err := Base64URLEncoder.EncodeBase64Url(hmac, g.options.ShouldPad)
-	if err != nil {
-		return false, err
-	}
-
-	return encodedHmac == parts[2], nil
+	return g.hmac.Verify([]byte(header), []byte(payload), decodedSignature)
 }
