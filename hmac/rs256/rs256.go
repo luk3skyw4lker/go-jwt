@@ -1,24 +1,36 @@
 package rs256
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
-	"fmt"
-	"slices"
+
+	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
 type RS256 struct {
-	key string
+	privateKey *rsa.PrivateKey
+	publicKey  *rsa.PublicKey
+	hash       crypto.Hash
 }
 
-func New(key string) *RS256 {
-	return &RS256{
-		key: key,
+func New(privateKey string, publicKey string) (*RS256, error) {
+	parsedPrivateKey, err := utils.ParseKey(privateKey, utils.PrivateKey)
+	if err != nil {
+		return nil, err
 	}
+
+	parsedPublicKey, err := utils.ParseKey(publicKey, utils.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RS256{
+		privateKey: parsedPrivateKey.(*rsa.PrivateKey),
+		publicKey:  parsedPublicKey.(*rsa.PublicKey),
+		hash:       crypto.SHA256,
+	}, nil
 }
 
 func (RS256) Name() string {
@@ -26,19 +38,24 @@ func (RS256) Name() string {
 }
 
 func (r *RS256) Generate(header []byte, payload []byte) ([]byte, error) {
-	if r.key == "" {
-		return nil, errors.New("cannot generate RSA256 hash with no key")
+	if !r.hash.Available() {
+		return nil, errors.New("hash unavailable")
 	}
 
-	block, _ := pem.Decode([]byte(r.key))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the public key")
-	}
+	return rsa.SignPKCS1v15(rand.Reader, r.privateKey, r.hash, r.HashData(header, payload))
+}
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse DER encoded public key: %s", err.Error())
-	}
+func (r *RS256) Verify(header, payload, decodedSignature []byte) (bool, error) {
+	err := rsa.VerifyPKCS1v15(r.publicKey, r.hash, r.HashData(header, payload), decodedSignature)
 
-	return rsa.EncryptOAEP(sha256.New(), rand.Reader, pub.(*rsa.PublicKey), slices.Concat(header, payload), nil)
+	return err == nil, err
+}
+
+func (r *RS256) HashData(header []byte, payload []byte) []byte {
+	generator := r.hash.New()
+
+	generator.Write(header)
+	generator.Write(payload)
+
+	return generator.Sum(nil)
 }
