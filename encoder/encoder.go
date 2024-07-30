@@ -113,9 +113,9 @@ func (e *Encoder) EncodeBase64UrlString(data string, shouldPad bool) (string, er
 	return e.EncodeBase64Url([]byte(data), shouldPad)
 }
 
-func (e *Encoder) DecodeBase64Url(data string, padded bool) (string, error) {
+func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 	if padIndex := strings.Index(data, "="); padIndex != -1 && padIndex < len(data)-2 {
-		return "", errors.New("padding is wrong for base64url pattern")
+		return nil, errors.New("padding is wrong for base64url pattern")
 	}
 
 	// This adds the pads back on
@@ -131,7 +131,7 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) (string, error) {
 		fourthCode, err := getBase64Code(int([]rune(data)[i+3]), e.decodeMap)
 
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		buffer := firstCode<<18 | secondCode<<12 | thirdCode<<6 | fourthCode
@@ -144,5 +144,5 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) (string, error) {
 		j += 3
 	}
 
-	return string(result[0 : len(result)-missingOctets]), nil
+	return result[0 : len(result)-missingOctets], nil
 }
