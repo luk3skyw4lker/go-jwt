@@ -144,5 +144,5 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 		j += 3
 	}
 
-	return result[0 : len(result)-missingOctets], nil
+	return result[:len(result)-missingOctets], nil
 }
