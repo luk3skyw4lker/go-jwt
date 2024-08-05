@@ -11,7 +11,7 @@ import (
 var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
 
 type Hmac interface {
-	Generate([]byte, []byte) ([]byte, error)
+	Sign([]byte, []byte) ([]byte, error)
 	Name() string
 	Verify([]byte, []byte, []byte) (bool, error)
 }
@@ -57,7 +57,7 @@ func (g *JWTGenerator) GenerateWithCustomHeader(headerInfo []byte, payloadInfo [
 		return "", err
 	}
 
-	hmac, err := g.hmac.Generate([]byte(header), []byte(payload))
+	hmac, err := g.hmac.Sign([]byte(header), []byte(payload))
 	if err != nil {
 		return "", err
 	}

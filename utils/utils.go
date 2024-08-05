@@ -10,9 +10,12 @@ import (
 	"strings"
 )
 
-const (
-	PublicKey  = "public"
-	PrivateKey = "private"
+var (
+	ErrInvalidToken                    = errors.New("invalid token sent to split")
+	ErrFailedToParsePEMBlockPrivateKey = errors.New("failed to parse PEM block containing the private key")
+	ErrFailedToParsePEMBlockPublicKey  = errors.New("failed to parse PEM block containing the public key")
+	ErrFailedToParsePrivateKey         = errors.New("failed to parse private key")
+	ErrFailedToParsePublicKey          = errors.New("failed to parse public key")
 )
 
 func GenerateRSAKeyPair(writeOut bool) (string, string) {
@@ -60,30 +63,34 @@ func SplitToken(token string) (string, string, string) {
 	parts := strings.Split(token, ".")
 
 	if len(parts) < 3 {
-		panic(errors.New("invalid token sent to split"))
+		panic(ErrInvalidToken)
 	}
 
 	return parts[0], parts[1], parts[2]
 }
 
-func ParseKey(key string, keyType string) (any, error) {
-	if keyType == "" {
-		return nil, errors.New("cannot parse key without a type")
+func ParseKeyPair(privateKey string, publicKey string) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	privateBlock, _ := pem.Decode([]byte(privateKey))
+	if privateBlock == nil {
+		return nil, nil, ErrFailedToParsePEMBlockPrivateKey
 	}
 
-	block, _ := pem.Decode([]byte(key))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the key")
+	publicBlock, _ := pem.Decode([]byte(publicKey))
+	if publicBlock == nil {
+		return nil, nil, ErrFailedToParsePEMBlockPublicKey
 	}
 
-	switch keyType {
-	case "private":
-		return x509.ParsePKCS1PrivateKey(block.Bytes)
-	case "public":
-		return x509.ParsePKCS1PublicKey(block.Bytes)
-	default:
-		return nil, errors.New("invalid key type, it can only be 'public' or 'private'")
+	parsedPrivateKey, err := x509.ParsePKCS1PrivateKey(privateBlock.Bytes)
+	if err != nil {
+		return nil, nil, ErrFailedToParsePrivateKey
 	}
+
+	parsedPublicKey, err := x509.ParsePKCS1PublicKey(publicBlock.Bytes)
+	if err != nil {
+		return nil, nil, ErrFailedToParsePublicKey
+	}
+
+	return parsedPrivateKey, parsedPublicKey, nil
 }
 
 func Must[T any](value T, err error) T {
