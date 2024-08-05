@@ -8,6 +8,15 @@ import (
 	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
+var (
+	ErrBreakLineInvalidChar      = errors.New("\\n is a invalid character for a base64 alphabet")
+	ErrCarriageReturnInvalidChar = errors.New("\\r is a invalid character for a base64 alphabet")
+	ErrGenericInvalidChar        = errors.New("invalid character in the alphabet")
+	ErrNoData                    = errors.New("no data provided to encode")
+	ErrWrongPadding              = errors.New("padding is wrong for base64url pattern")
+	ErrCharOutsideAlphabet       = errors.New("char is outside of base64url alphabet")
+)
+
 // This is the URL safe version of base64, which is the one commonly used for JWT generation
 var Base64URLAlphabet string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 var padChar rune = '='
@@ -33,11 +42,11 @@ func NewEncoder(alphabet string) (*Encoder, error) {
 	for i := 0; i < len(alphabet); i++ {
 		switch alphabet[i] {
 		case '\n':
-			return nil, errors.New("\\n is a invalid character for a base64 alphabet")
+			return nil, ErrBreakLineInvalidChar
 		case '\r':
-			return nil, errors.New("\\r is a invalid character for a base64 alphabet")
+			return nil, ErrCarriageReturnInvalidChar
 		case invalidIndex:
-			return nil, errors.New("invalid character in the alphabet")
+			return nil, ErrGenericInvalidChar
 		}
 
 		enc.decodeMap[alphabet[i]] = uint8(i)
@@ -63,7 +72,7 @@ func (e *Encoder) addRemainingSmallBlock(data, result []byte, remaining, j, i in
 
 func (e *Encoder) EncodeBase64Url(data []byte, shouldPad bool) (string, error) {
 	if len(data) == 0 {
-		return "", errors.New("no data provided to encode")
+		return "", ErrNoData
 	}
 
 	result := make([]byte, encodedLen(len(data), shouldPad))
@@ -107,7 +116,7 @@ func (e *Encoder) EncodeBase64Url(data []byte, shouldPad bool) (string, error) {
 
 func (e *Encoder) EncodeBase64UrlString(data string, shouldPad bool) (string, error) {
 	if data == "" {
-		return "", errors.New("no data provided to encode")
+		return "", ErrNoData
 	}
 
 	return e.EncodeBase64Url([]byte(data), shouldPad)
@@ -115,7 +124,7 @@ func (e *Encoder) EncodeBase64UrlString(data string, shouldPad bool) (string, er
 
 func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 	if padIndex := strings.Index(data, "="); padIndex != -1 && padIndex < len(data)-2 {
-		return nil, errors.New("padding is wrong for base64url pattern")
+		return nil, ErrWrongPadding
 	}
 
 	// This adds the pads back on

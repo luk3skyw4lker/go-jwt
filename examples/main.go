@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,14 +9,15 @@ import (
 	"strings"
 
 	"github.com/luk3skyw4lker/go-jwt/encoder"
-	"github.com/luk3skyw4lker/go-jwt/hmac/rs256"
 	"github.com/luk3skyw4lker/go-jwt/jwt"
+	"github.com/luk3skyw4lker/go-jwt/signing/rsa"
 	"github.com/luk3skyw4lker/go-jwt/utils"
 )
 
 var Base64 *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
 
-var hmacAlgorithm jwt.Hmac = utils.Must(rs256.New(utils.RSAPrivateKey, utils.RSAPublicKey))
+// you can swap it by hmac.New(crypto.SHA256, "your key")
+var hmacAlgorithm jwt.Hmac = utils.Must(rsa.New(crypto.SHA256, utils.RSAPrivateKey, utils.RSAPrivateKey))
 var shouldPad = false
 
 func generate() string {
