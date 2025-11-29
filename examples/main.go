@@ -8,10 +8,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/luk3skyw4lker/go-jwt/encoder"
-	"github.com/luk3skyw4lker/go-jwt/jwt"
-	"github.com/luk3skyw4lker/go-jwt/signing/rsa"
-	"github.com/luk3skyw4lker/go-jwt/utils"
+	"github.com/luk3skyw4lker/go-jwt/v2/encoder"
+	"github.com/luk3skyw4lker/go-jwt/v2/jwt"
+	"github.com/luk3skyw4lker/go-jwt/v2/signing/rsa"
+	"github.com/luk3skyw4lker/go-jwt/v2/utils"
 )
 
 var Base64 *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)

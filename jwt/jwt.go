@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/luk3skyw4lker/go-jwt/encoder"
-	"github.com/luk3skyw4lker/go-jwt/utils"
+	"github.com/luk3skyw4lker/go-jwt/v2/encoder"
+	"github.com/luk3skyw4lker/go-jwt/v2/utils"
 )
 
 var Base64URLEncoder *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)

@@ -4,7 +4,7 @@ A short library to generate your JWT. Lightweight and with no dependencies.
 
 ## Installation
 ```shell
-go get github.com/luk3skyw4lker/go-jwt
+go get github.com/luk3skyw4lker/go-jwt/v2
 ```
 
 ## API
@@ -85,10 +85,10 @@ import (
   "log"
   "strings"
 
-  "github.com/luk3skyw4lker/go-jwt/encoder"
-  "github.com/luk3skyw4lker/go-jwt/jwt"
-  "github.com/luk3skyw4lker/go-jwt/signing/rsa"
-  "github.com/luk3skyw4lker/go-jwt/utils"
+  "github.com/luk3skyw4lker/go-jwt/v2/encoder"
+  "github.com/luk3skyw4lker/go-jwt/v2/jwt"
+  "github.com/luk3skyw4lker/go-jwt/v2/signing/rsa"
+  "github.com/luk3skyw4lker/go-jwt/v2/utils"
 )
 
 var Base64 *encoder.Encoder = encoder.MustNewEncoder(encoder.Base64URLAlphabet)
@@ -136,8 +136,8 @@ import (
   "crypto"
   "log"
 
-  "github.com/luk3skyw4lker/go-jwt/signing/hmac"
-  "github.com/luk3skyw4lker/go-jwt/jwt"
+  "github.com/luk3skyw4lker/go-jwt/v2/signing/hmac"
+  "github.com/luk3skyw4lker/go-jwt/v2/jwt"
 )
 
 var shouldPad = false
@@ -200,7 +200,7 @@ The RSA signing methods:
 - RS256 (with SHA-256 as a hash algorithm)
 - RS512 (with SHA-512 as a hash algorithm)
 
-They can be found in the `github.com/luk3skyw4lker/go-jwt/signing/hmac` and `github.com/luk3skyw4lker/go-jwt/signing/rsa`, respectively.
+They can be found in the `github.com/luk3skyw4lker/go-jwt/v2/signing/hmac` and `github.com/luk3skyw4lker/go-jwt/v2/signing/rsa`, respectively.
 
 You can also implement your own HMAC generation algorithm following the `Hmac` interface spec:
 

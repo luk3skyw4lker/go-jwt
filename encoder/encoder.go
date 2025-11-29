@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/luk3skyw4lker/go-jwt/utils"
+	"github.com/luk3skyw4lker/go-jwt/v2/utils"
 )
 
 var (
