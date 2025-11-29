@@ -127,13 +127,21 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 		return nil, ErrWrongPadding
 	}
 
-	// This adds the pads back on
-	if m := len(data) % 4; m != 0 && !padded {
-		data += strings.Repeat("=", 4-m)
+	dataLen := len(data)
+	remainder := dataLen % 4
+
+	// Calculate output length based on input length to avoid having to add the padding back in
+	outputLen := (dataLen / 4) * 3
+	if remainder > 0 {
+		outputLen += remainder - 1
 	}
 
-	missingOctets, i, j, result := strings.Count(data, "="), 0, 0, make([]byte, decodedLen(len(data)))
-	for i = 0; i < len(data); {
+	result := make([]byte, outputLen)
+	i, j := 0, 0
+
+	// Process complete 4-character blocks
+	completeBlocks := dataLen - remainder
+	for i < completeBlocks {
 		firstCode, err := getBase64Code(int([]rune(data)[i]), e.decodeMap)
 		secondCode, err := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
 		thirdCode, err := getBase64Code(int([]rune(data)[i+2]), e.decodeMap)
@@ -153,5 +161,22 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 		j += 3
 	}
 
-	return result[:len(result)-missingOctets], nil
+	// Handle remaining characters (unpadded case)
+	if remainder == 2 {
+		firstCode, _ := getBase64Code(int([]rune(data)[i]), e.decodeMap)
+		secondCode, _ := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
+
+		buffer := firstCode<<18 | secondCode<<12
+		result[j] = byte(buffer >> 16)
+	} else if remainder == 3 {
+		firstCode, _ := getBase64Code(int([]rune(data)[i]), e.decodeMap)
+		secondCode, _ := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
+		thirdCode, _ := getBase64Code(int([]rune(data)[i+2]), e.decodeMap)
+
+		buffer := firstCode<<18 | secondCode<<12 | thirdCode<<6
+		result[j] = byte(buffer >> 16)
+		result[j+1] = byte((buffer >> 8) & 0xff)
+	}
+
+	return result, nil
 }
