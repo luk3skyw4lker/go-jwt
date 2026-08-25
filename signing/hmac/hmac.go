@@ -65,7 +65,7 @@ func New(hash crypto.Hash, key string) *HMACSigning {
 
 // SetKey installs the secret this signer uses.
 func (s *HMACSigning) SetKey(key []byte) {
-	s.key = key
+	s.key = append([]byte(nil), key...)
 }
 
 // Name returns the value this algorithm writes into the token's alg header.

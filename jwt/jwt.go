@@ -88,7 +88,8 @@ func (g *JWTGenerator) Generate(payload []byte) (string, error) {
 // Verify reports whether a token was signed by this generator's algorithm and
 // key, and whether it names that algorithm in its header.
 //
-// A token that fails any of those checks is (false, err); nothing about a
+// A token that fails signature verification is (false, nil). Malformed tokens
+// or configuration problems are reported as (false, err). Nothing about a
 // presented token is trusted before it verifies.
 func (g *JWTGenerator) Verify(jwt string) (bool, error) {
 	header, payload, signature, err := utils.SplitToken(jwt)
