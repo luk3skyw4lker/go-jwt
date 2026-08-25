@@ -10,7 +10,7 @@ go get github.com/luk3skyw4lker/go-jwt/v2
 ## API
 ```go
 type Hmac interface {
-  Generate([]byte, []byte) ([]byte, error)
+  Sign([]byte, []byte) ([]byte, error)
   Name() string
   Verify([]byte, []byte, []byte) (bool, error)
 }
@@ -21,12 +21,42 @@ type Options struct {
 
 type JWTGenerator struct {}
 
-func NewGenerator(algorithm Hmac, options Options) *JWTGenerator
+func NewGenerator(algorithm Hmac, options ...Options) *JWTGenerator
 
 func (g *JWTGenerator) Generate(payload []byte) (string, error)
 func (g *JWTGenerator) GenerateWithCustomHeader(headerInfo, payload []byte) (string, error)
 func (g *JWTGenerator) Verify(token string) (bool, error)
 ```
+
+## Upgrading to v2.1.0
+
+**v2.1.0 fixes a vulnerability. Every release up to and including v2.0.2 produces forgeable
+tokens and should not be used.**
+
+`hmac.Sign` hashed the header and payload with a plain SHA-256 and never mixed in the secret, so
+the signature was a function of public data alone. Anyone could compute a valid signature for any
+payload without the key, and a token verified under *any* key:
+
+```go
+sum := sha256.Sum256([]byte(header + payload))
+forged := base64.RawURLEncoding.EncodeToString(sum[:])   // == the real signature
+```
+
+Alongside it: the signing input omitted the `.` separator RFC 7515 §5.1 requires, so tokens were
+not interoperable with other libraries and two different header/payload splits signed identically;
+`Verify` never checked the `alg` header, accepting a token that claimed `none`; the comparison was
+not constant time; `utils.SplitToken` panicked on a malformed token; `DecodeBase64Url` ignored
+padding and dropped errors from three of every four characters; and `crypto.SHA512` was never
+registered, so `HS512` and `RS512` could be constructed but not used.
+
+Two changes are breaking:
+
+- **`utils.SplitToken` now returns an error** instead of panicking:
+  `SplitToken(token string) (header, payload, signature string, err error)`. It also requires
+  exactly three non-empty segments.
+- **Signatures produced before v2.1.0 no longer verify**, because the signing input changed to the
+  RFC's `header + "." + payload`. Any token still in circulation must be re-issued — and since
+  every one of them was forgeable, re-issuing is the point.
 
 ### Errors
 
