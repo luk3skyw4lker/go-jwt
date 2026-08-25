@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrInvalidToken                    = errors.New("invalid token sent to split")
+	ErrInvalidToken                    = errors.New("a JWT must have exactly three dot-separated segments")
 	ErrFailedToParsePEMBlockPrivateKey = errors.New("failed to parse PEM block containing the private key")
 	ErrFailedToParsePEMBlockPublicKey  = errors.New("failed to parse PEM block containing the public key")
 	ErrFailedToParsePrivateKey         = errors.New("failed to parse private key")
@@ -59,14 +59,26 @@ func GenerateRSAKeyPair(writeOut bool) (string, string) {
 	return string(keyPEM), string(pubPEM)
 }
 
-func SplitToken(token string) (string, string, string) {
+// SplitToken breaks a token into its encoded header, payload and signature.
+//
+// It reports ErrInvalidToken rather than panicking. A malformed token is
+// ordinary input — it arrives from whoever is talking to the server, and every
+// caller of this function is holding a string it did not produce.
+//
+// Exactly three segments are required. Accepting more would let a token carry
+// trailing data that no segment covers and no signature protects.
+func SplitToken(token string) (header, payload, signature string, err error) {
 	parts := strings.Split(token, ".")
 
-	if len(parts) < 3 {
-		panic(ErrInvalidToken)
+	if len(parts) != 3 {
+		return "", "", "", ErrInvalidToken
 	}
 
-	return parts[0], parts[1], parts[2]
+	if parts[0] == "" || parts[1] == "" || parts[2] == "" {
+		return "", "", "", ErrInvalidToken
+	}
+
+	return parts[0], parts[1], parts[2], nil
 }
 
 func ParseKeyPair(privateKey string, publicKey string) (*rsa.PrivateKey, *rsa.PublicKey, error) {

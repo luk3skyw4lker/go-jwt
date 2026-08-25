@@ -13,7 +13,9 @@ func decodedLen(n int) int {
 }
 
 func getBase64Code(charCode int, decodeMap [256]byte) (int, error) {
-	if charCode > len(decodeMap) {
+	// >= because decodeMap[len(decodeMap)] is out of range: the old > let a
+	// character code of exactly 256 index past the end of the array.
+	if charCode < 0 || charCode >= len(decodeMap) {
 		return 0, ErrCharOutsideAlphabet
 	}
 

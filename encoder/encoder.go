@@ -1,4 +1,3 @@
-//nolint:ineffassign
 package encoder
 
 import (
@@ -122,13 +121,27 @@ func (e *Encoder) EncodeBase64UrlString(data string, shouldPad bool) (string, er
 	return e.EncodeBase64Url([]byte(data), shouldPad)
 }
 
+// DecodeBase64Url decodes base64url text, with or without padding.
+//
+// The padded argument is accepted for compatibility and not consulted: padding
+// is data, so whether it is present is read from the input rather than
+// promised by the caller. It used to be neither read nor honoured, which left
+// every padded string decoding to one or two trailing zero bytes too many —
+// enough to make a padded token fail to verify against its own signature.
 func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 	if padIndex := strings.Index(data, "="); padIndex != -1 && padIndex < len(data)-2 {
 		return nil, ErrWrongPadding
 	}
+	data = strings.TrimRight(data, string(padChar))
 
 	dataLen := len(data)
 	remainder := dataLen % 4
+
+	// A single leftover character cannot be the tail of any base64 encoding:
+	// six bits are not enough to have produced a byte.
+	if remainder == 1 {
+		return nil, ErrWrongPadding
+	}
 
 	// Calculate output length based on input length to avoid having to add the padding back in
 	outputLen := (dataLen / 4) * 3
@@ -142,11 +155,19 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 	// Process complete 4-character blocks
 	completeBlocks := dataLen - remainder
 	for i < completeBlocks {
-		firstCode, err := getBase64Code(int([]rune(data)[i]), e.decodeMap)
-		secondCode, err := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
-		thirdCode, err := getBase64Code(int([]rune(data)[i+2]), e.decodeMap)
-		fourthCode, err := getBase64Code(int([]rune(data)[i+3]), e.decodeMap)
-
+		firstCode, err := e.codeAt(data, i)
+		if err != nil {
+			return nil, err
+		}
+		secondCode, err := e.codeAt(data, i+1)
+		if err != nil {
+			return nil, err
+		}
+		thirdCode, err := e.codeAt(data, i+2)
+		if err != nil {
+			return nil, err
+		}
+		fourthCode, err := e.codeAt(data, i+3)
 		if err != nil {
 			return nil, err
 		}
@@ -163,15 +184,30 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 
 	// Handle remaining characters (unpadded case)
 	if remainder == 2 {
-		firstCode, _ := getBase64Code(int([]rune(data)[i]), e.decodeMap)
-		secondCode, _ := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
+		firstCode, err := e.codeAt(data, i)
+		if err != nil {
+			return nil, err
+		}
+		secondCode, err := e.codeAt(data, i+1)
+		if err != nil {
+			return nil, err
+		}
 
 		buffer := firstCode<<18 | secondCode<<12
 		result[j] = byte(buffer >> 16)
 	} else if remainder == 3 {
-		firstCode, _ := getBase64Code(int([]rune(data)[i]), e.decodeMap)
-		secondCode, _ := getBase64Code(int([]rune(data)[i+1]), e.decodeMap)
-		thirdCode, _ := getBase64Code(int([]rune(data)[i+2]), e.decodeMap)
+		firstCode, err := e.codeAt(data, i)
+		if err != nil {
+			return nil, err
+		}
+		secondCode, err := e.codeAt(data, i+1)
+		if err != nil {
+			return nil, err
+		}
+		thirdCode, err := e.codeAt(data, i+2)
+		if err != nil {
+			return nil, err
+		}
 
 		buffer := firstCode<<18 | secondCode<<12 | thirdCode<<6
 		result[j] = byte(buffer >> 16)
@@ -179,4 +215,15 @@ func (e *Encoder) DecodeBase64Url(data string, padded bool) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+// codeAt maps the character at index i to its six-bit value.
+//
+// It indexes bytes rather than runes: every character of the alphabet is
+// ASCII, so any byte of a multi-byte character is outside it and is rejected
+// by the decode map. Converting the whole string to runes to read one
+// character, as this once did, also made decoding quadratic in the length of
+// the input.
+func (e *Encoder) codeAt(data string, i int) (int, error) {
+	return getBase64Code(int(data[i]), e.decodeMap)
 }
